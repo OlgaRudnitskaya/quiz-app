@@ -4,27 +4,308 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Викторина: Столицы мира</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .screen {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        #options button {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            text-align: left;
+        }
+        .correct {
+            background: #2ecc71 !important;
+        }
+        .incorrect {
+            background: #e74c3c !important;
+        }
+        #rating {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <div id="start-screen" class="start-screen">
-            <h1>Викторина: Столицы мира</h1>
-            <p>Выберите количество вопросов:</p>
-            <button class="count-btn" data-count="10">10 вопросов</button>
-            <button class="count-btn" data-count="20">20 вопросов</button>
-            <button class="count-btn" data-count="30">30 вопросов</button>
-        </div>
-
-        <div id="quiz-screen" class="quiz-container" style="display: none;">
-            <h1>Столицы мира</h1>
-            <div id="question" class="question"></div>
-            <div id="options" class="options"></div>
-            <button id="next-btn" class="next-btn">Далее</button>
-            <div id="result" class="result"></div>
-            <div id="progress" class="progress"></div>
-        </div>
+    <div id="login-screen" class="screen">
+        <h2>Вход в викторину</h2>
+        <p>Введите ваше имя для участия:</p>
+        <input type="text" id="username" placeholder="Ваше имя">
+        <button id="login-btn">Начать викторину</button>
     </div>
-    <script src="script.js"></script>
+
+    <div id="quiz-screen" class="screen" style="display: none;">
+        <h2>Викторина: Столицы мира</h2>
+        <p id="user-greeting"></p>
+        <div id="progress"></div>
+        <div id="question"></div>
+        <div id="options"></div>
+        <button id="next-btn" style="display: none;">Следующий вопрос</button>
+        <div id="result"></div>
+    </div>
+
+    <div id="rating-screen" class="screen">
+        <h2>Рейтинг игроков</h2>
+        <div id="rating"></div>
+        <button id="restart-btn">Играть снова</button>
+    </div>
+
+    <script>
+        // База данных всех стран и их столиц (можно расширить)
+        const countries = [
+            { country: "Франция", capital: "Париж" },
+            { country: "Япония", capital: "Токио" },
+            { country: "Бразилия", capital: "Бразилиа" },
+            { country: "Канада", capital: "Оттава" },
+            { country: "Австралия", capital: "Канберра" },
+            { country: "Россия", capital: "Москва" },
+            { country: "Германия", capital: "Берлин" },
+            { country: "Италия", capital: "Рим" },
+            { country: "Испания", capital: "Мадрид" },
+            { country: "Великобритания", capital: "Лондон" },
+            { country: "США", capital: "Вашингтон" },
+            { country: "Китай", capital: "Пекин" },
+            { country: "Индия", capital: "Нью-Дели" },
+            { country: "Южная Корея", capital: "Сеул" },
+            { country: "Таиланд", capital: "Бангкок" },
+            { country: "Аргентина", capital: "Буэнос-Айрес" },
+            { country: "Мексика", capital: "Мехико" },
+            { country: "ЮАР", capital: "Претория" },
+            { country: "Египет", capital: "Каир" },
+            { country: "Турция", capital: "Анкара" },
+            // Добавьте больше стран...
+        ];
+
+        const TOTAL_QUESTIONS = 15;
+        let questions = [];
+        let currentQuestion = 0;
+        let score = 0;
+        let currentUser = null;
+        let userStats = JSON.parse(localStorage.getItem('userStats')) || {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginScreen = document.getElementById("login-screen");
+            const quizScreen = document.getElementById("quiz-screen");
+            const ratingScreen = document.getElementById("rating-screen");
+            const questionElement = document.getElementById("question");
+            const optionsElement = document.getElementById("options");
+            const nextButton = document.getElementById("next-btn");
+            const resultElement = document.getElementById("result");
+            const progressElement = document.getElementById("progress");
+            const loginBtn = document.getElementById("login-btn");
+            const usernameInput = document.getElementById("username");
+            const restartBtn = document.getElementById("restart-btn");
+            const ratingElement = document.getElementById("rating");
+            const userGreeting = document.getElementById("user-greeting");
+
+            // Показать рейтинг при загрузке
+            showRating();
+            loginScreen.style.display = "block";
+            quizScreen.style.display = "none";
+            ratingScreen.style.display = "none";
+
+            // Обработчик входа
+            loginBtn.addEventListener("click", () => {
+                const username = usernameInput.value.trim();
+                if (username) {
+                    currentUser = username;
+                    if (!userStats[username]) {
+                        userStats[username] = { totalGames: 0, totalCorrect: 0, bestScore: 0 };
+                    }
+                    localStorage.setItem('userStats', JSON.stringify(userStats));
+                    startGame();
+                } else {
+                    alert("Пожалуйста, введите ваше имя");
+                }
+            });
+
+            // Начало игры
+            function startGame() {
+                loginScreen.style.display = "none";
+                quizScreen.style.display = "block";
+                ratingScreen.style.display = "none";
+                
+                userGreeting.textContent = `Играет: ${currentUser}`;
+                
+                // Создаём вопросы
+                const shuffledCountries = [...countries]
+                    .sort(() => Math.random() - 0.5)
+                    .slice(0, TOTAL_QUESTIONS);
+                    
+                questions = shuffledCountries.map(country => {
+                    const availableCapitals = countries
+                        .map(c => c.capital)
+                        .filter(c => c !== country.capital);
+                        
+                    const wrongCapitals = [];
+                    while (wrongCapitals.length < 3 && availableCapitals.length > 0) {
+                        const randomIndex = Math.floor(Math.random() * availableCapitals.length);
+                        wrongCapitals.push(availableCapitals.splice(randomIndex, 1)[0]);
+                    }
+                    
+                    const options = [...wrongCapitals, country.capital]
+                        .sort(() => Math.random() - 0.5);
+                    
+                    return {
+                        question: `Столица ${country.country}?`,
+                        options: options,
+                        answer: country.capital
+                    };
+                });
+                
+                currentQuestion = 0;
+                score = 0;
+                showQuestion();
+            }
+
+            // Показ вопроса
+            function showQuestion() {
+                const q = questions[currentQuestion];
+                questionElement.textContent = q.question;
+                optionsElement.innerHTML = "";
+                
+                q.options.forEach(option => {
+                    const button = document.createElement("button");
+                    button.textContent = option;
+                    button.addEventListener("click", () => selectAnswer(option));
+                    optionsElement.appendChild(button);
+                });
+                
+                progressElement.textContent = `Вопрос ${currentQuestion + 1} из ${TOTAL_QUESTIONS}`;
+                nextButton.style.display = "none";
+                resultElement.textContent = "";
+            }
+
+            // Проверка ответа
+            function selectAnswer(answer) {
+                const correct = questions[currentQuestion].answer;
+                const buttons = optionsElement.querySelectorAll("button");
+                
+                buttons.forEach(button => {
+                    button.disabled = true;
+                    if (button.textContent === correct) {
+                        button.classList.add("correct");
+                    } else if (button.textContent === answer && answer !== correct) {
+                        button.classList.add("incorrect");
+                    }
+                });
+                
+                if (answer === correct) {
+                    score++;
+                    resultElement.textContent = "Правильно!";
+                    resultElement.style.color = "#2ecc71";
+                } else {
+                    resultElement.textContent = `Неправильно! Правильный ответ: ${correct}`;
+                    resultElement.style.color = "#e74c3c";
+                }
+                
+                nextButton.style.display = "block";
+            }
+
+            // Показ результата
+            function showResult() {
+                questionElement.textContent = "";
+                optionsElement.innerHTML = "";
+                nextButton.style.display = "none";
+                
+                const percentage = Math.round((score / TOTAL_QUESTIONS) * 100);
+                resultElement.textContent = `Ваш результат: ${score} из ${TOTAL_QUESTIONS} (${percentage}%)`;
+                
+                // Сохраняем результаты
+                userStats[currentUser].totalGames++;
+                userStats[currentUser].totalCorrect += score;
+                if (score > userStats[currentUser].bestScore) {
+                    userStats[currentUser].bestScore = score;
+                }
+                localStorage.setItem('userStats', JSON.stringify(userStats));
+                
+                // Показываем рейтинг
+                showRating();
+                quizScreen.style.display = "none";
+                ratingScreen.style.display = "block";
+            }
+
+            // Показ рейтинга
+            function showRating() {
+                // Сортируем пользователей по лучшему результату
+                const sortedUsers = Object.entries(userStats)
+                    .map(([name, stats]) => ({
+                        name,
+                        ...stats,
+                        avgScore: (stats.totalCorrect / (stats.totalGames * TOTAL_QUESTIONS) * 100).toFixed(1)
+                    }))
+                    .sort((a, b) => b.bestScore - a.bestScore);
+                
+                let html = `<table>
+                    <tr>
+                        <th>Игрок</th>
+                        <th>Лучший результат</th>
+                        <th>Средний %</th>
+                        <th>Игр сыграно</th>
+                    </tr>`;
+                
+                sortedUsers.forEach(user => {
+                    html += `<tr ${user.name === currentUser ? 'style="font-weight:bold;background-color:#f0f0f0"' : ''}>
+                        <td>${user.name}</td>
+                        <td>${user.bestScore}/${TOTAL_QUESTIONS}</td>
+                        <td>${user.avgScore}%</td>
+                        <td>${user.totalGames}</td>
+                    </tr>`;
+                });
+                
+                html += "</table>";
+                ratingElement.innerHTML = html;
+            }
+
+            // Кнопка "Следующий вопрос"
+            nextButton.addEventListener("click", () => {
+                currentQuestion++;
+                if (currentQuestion < questions.length) {
+                    showQuestion();
+                } else {
+                    showResult();
+                }
+            });
+
+            // Кнопка "Играть снова"
+            restartBtn.addEventListener("click", () => {
+                ratingScreen.style.display = "none";
+                loginScreen.style.display = "block";
+                usernameInput.value = currentUser;
+            });
+        });
+    </script>
 </body>
 </html>
