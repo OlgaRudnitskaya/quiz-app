@@ -1,19 +1,36 @@
-// База данных вопросов (столицы мира)
-const allQuestions = [
-    { question: "Столица Франции?", options: ["Париж", "Берлин", "Мадрид", "Рим"], answer: "Париж" },
-    { question: "Столица Японии?", options: ["Пекин", "Сеул", "Токио", "Бангкок"], answer: "Токио" },
-    { question: "Столица Бразилии?", options: ["Рио-де-Жанейро", "Бразилиа", "Сан-Паулу", "Буэнос-Айрес"], answer: "Бразилиа" },
-    { question: "Столица Канады?", options: ["Торонто", "Оттава", "Ванкувер", "Монреаль"], answer: "Оттава" },
-    { question: "Столица Австралии?", options: ["Сидней", "Мельбурн", "Канберра", "Брисбен"], answer: "Канберра" },
-    // Добавьте ещё вопросы по аналогии...
+// База данных всех стран и их столиц
+const countries = [
+    { country: "Франция", capital: "Париж" },
+    { country: "Япония", capital: "Токио" },
+    { country: "Бразилия", capital: "Бразилиа" },
+    { country: "Канада", capital: "Оттава" },
+    { country: "Австралия", capital: "Канберра" },
+    { country: "Россия", capital: "Москва" },
+    { country: "Германия", capital: "Берлин" },
+    { country: "Италия", capital: "Рим" },
+    { country: "Испания", capital: "Мадрид" },
+    { country: "Великобритания", capital: "Лондон" },
+    { country: "США", capital: "Вашингтон" },
+    { country: "Китай", capital: "Пекин" },
+    { country: "Индия", capital: "Нью-Дели" },
+    { country: "Южная Корея", capital: "Сеул" },
+    { country: "Таиланд", capital: "Бангкок" },
+    { country: "Аргентина", capital: "Буэнос-Айрес" },
+    { country: "Мексика", capital: "Мехико" },
+    { country: "ЮАР", capital: "Претория" },
+    { country: "Египет", capital: "Каир" },
+    { country: "Турция", capital: "Анкара" },
+    // Добавьте остальные страны по необходимости...
 ];
+
+// Получаем все столицы для создания неправильных вариантов
+const allCapitals = countries.map(c => c.capital);
 
 let questions = [];
 let currentQuestion = 0;
 let score = 0;
 let totalQuestions = 0;
 
-// Ждём полной загрузки DOM
 document.addEventListener('DOMContentLoaded', function() {
     const startScreen = document.getElementById("start-screen");
     const quizScreen = document.getElementById("quiz-screen");
@@ -23,7 +40,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultElement = document.getElementById("result");
     const progressElement = document.getElementById("progress");
 
-    // Обработчик выбора количества вопросов
     document.querySelectorAll(".count-btn").forEach(button => {
         button.addEventListener("click", (e) => {
             totalQuestions = parseInt(e.target.dataset.count);
@@ -31,24 +47,37 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Начало игры
     function startGame() {
         if (!startScreen || !quizScreen) return;
         
         startScreen.style.display = "none";
         quizScreen.style.display = "block";
         
-        // Выбираем случайные вопросы из базы
-        questions = [...allQuestions]
-            .sort(() => 0.5 - Math.random())
-            .slice(0, totalQuestions);
+        // Создаём вопросы с рандомными вариантами
+        const shuffledCountries = [...countries].sort(() => 0.5 - Math.random());
+        questions = shuffledCountries.slice(0, totalQuestions).map(country => {
+            // Выбираем 3 случайные столицы (исключая правильную)
+            const wrongCapitals = allCapitals
+                .filter(c => c !== country.capital)
+                .sort(() => 0.5 - Math.random())
+                .slice(0, 3);
+            
+            // Смешиваем правильный и неправильные ответы
+            const options = [...wrongCapitals, country.capital]
+                .sort(() => 0.5 - Math.random());
+            
+            return {
+                question: `Столица ${country.country}?`,
+                options: options,
+                answer: country.capital
+            };
+        });
         
         currentQuestion = 0;
         score = 0;
         showQuestion();
     }
 
-    // Показ вопроса
     function showQuestion() {
         const q = questions[currentQuestion];
         questionElement.textContent = q.question;
@@ -62,24 +91,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         progressElement.textContent = `Вопрос ${currentQuestion + 1} из ${totalQuestions}`;
+        nextButton.style.display = "none";
     }
 
-    // Проверка ответа
     function selectAnswer(answer) {
         const correct = questions[currentQuestion].answer;
+        const buttons = optionsElement.querySelectorAll("button");
+        
+        buttons.forEach(button => {
+            button.disabled = true;
+            if (button.textContent === correct) {
+                button.style.backgroundColor = "#2ecc71";
+            } else if (button.textContent === answer && answer !== correct) {
+                button.style.backgroundColor = "#e74c3c";
+            }
+        });
+        
         if (answer === correct) {
             score++;
         }
         
-        currentQuestion++;
-        if (currentQuestion < questions.length) {
-            showQuestion();
-        } else {
-            showResult();
-        }
+        nextButton.style.display = "block";
     }
 
-    // Показ результата
     function showResult() {
         questionElement.textContent = "";
         optionsElement.innerHTML = "";
@@ -97,5 +131,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    nextButton.addEventListener("click", showQuestion);
+    nextButton.addEventListener("click", () => {
+        currentQuestion++;
+        if (currentQuestion < questions.length) {
+            showQuestion();
+        } else {
+            showResult();
+        }
+    });
 });
