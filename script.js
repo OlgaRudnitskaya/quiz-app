@@ -71,3 +71,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ... (остальной код остаётся таким же)
 });
+if (countries.length < 10) alert("Добавьте больше стран в базу!");
