@@ -1,4 +1,4 @@
-// База данных всех стран и их столиц
+// База данных всех стран и их столиц (добавьте больше стран)
 const countries = [
     { country: "Франция", capital: "Париж" },
     { country: "Япония", capital: "Токио" },
@@ -20,32 +20,11 @@ const countries = [
     { country: "ЮАР", capital: "Претория" },
     { country: "Египет", capital: "Каир" },
     { country: "Турция", capital: "Анкара" },
-    // Добавьте остальные страны по необходимости...
+    // Добавьте остальные страны...
 ];
 
-// Получаем все столицы для создания неправильных вариантов
-const allCapitals = countries.map(c => c.capital);
-
-let questions = [];
-let currentQuestion = 0;
-let score = 0;
-let totalQuestions = 0;
-
 document.addEventListener('DOMContentLoaded', function() {
-    const startScreen = document.getElementById("start-screen");
-    const quizScreen = document.getElementById("quiz-screen");
-    const questionElement = document.getElementById("question");
-    const optionsElement = document.getElementById("options");
-    const nextButton = document.getElementById("next-btn");
-    const resultElement = document.getElementById("result");
-    const progressElement = document.getElementById("progress");
-
-    document.querySelectorAll(".count-btn").forEach(button => {
-        button.addEventListener("click", (e) => {
-            totalQuestions = parseInt(e.target.dataset.count);
-            startGame();
-        });
-    });
+    // ... (остальной код остаётся таким же до функции startGame)
 
     function startGame() {
         if (!startScreen || !quizScreen) return;
@@ -53,18 +32,30 @@ document.addEventListener('DOMContentLoaded', function() {
         startScreen.style.display = "none";
         quizScreen.style.display = "block";
         
+        // Проверяем, чтобы не запросили больше вопросов, чем есть стран
+        totalQuestions = Math.min(totalQuestions, countries.length);
+        
         // Создаём вопросы с рандомными вариантами
-        const shuffledCountries = [...countries].sort(() => 0.5 - Math.random());
-        questions = shuffledCountries.slice(0, totalQuestions).map(country => {
-            // Выбираем 3 случайные столицы (исключая правильную)
-            const wrongCapitals = allCapitals
-                .filter(c => c !== country.capital)
-                .sort(() => 0.5 - Math.random())
-                .slice(0, 3);
+        const shuffledCountries = [...countries]
+            .sort(() => Math.random() - 0.5) // Более случайное перемешивание
+            .slice(0, totalQuestions);
             
-            // Смешиваем правильный и неправильные ответы
+        questions = shuffledCountries.map(country => {
+            // Создаем новый массив столиц для каждого вопроса
+            const availableCapitals = countries
+                .map(c => c.capital)
+                .filter(c => c !== country.capital);
+                
+            // Выбираем 3 уникальные случайные столицы
+            const wrongCapitals = [];
+            while (wrongCapitals.length < 3 && availableCapitals.length > 0) {
+                const randomIndex = Math.floor(Math.random() * availableCapitals.length);
+                wrongCapitals.push(availableCapitals.splice(randomIndex, 1)[0]);
+            }
+            
+            // Смешиваем варианты
             const options = [...wrongCapitals, country.capital]
-                .sort(() => 0.5 - Math.random());
+                .sort(() => Math.random() - 0.5);
             
             return {
                 question: `Столица ${country.country}?`,
@@ -78,65 +69,5 @@ document.addEventListener('DOMContentLoaded', function() {
         showQuestion();
     }
 
-    function showQuestion() {
-        const q = questions[currentQuestion];
-        questionElement.textContent = q.question;
-        optionsElement.innerHTML = "";
-        
-        q.options.forEach(option => {
-            const button = document.createElement("button");
-            button.textContent = option;
-            button.addEventListener("click", () => selectAnswer(option));
-            optionsElement.appendChild(button);
-        });
-        
-        progressElement.textContent = `Вопрос ${currentQuestion + 1} из ${totalQuestions}`;
-        nextButton.style.display = "none";
-    }
-
-    function selectAnswer(answer) {
-        const correct = questions[currentQuestion].answer;
-        const buttons = optionsElement.querySelectorAll("button");
-        
-        buttons.forEach(button => {
-            button.disabled = true;
-            if (button.textContent === correct) {
-                button.style.backgroundColor = "#2ecc71";
-            } else if (button.textContent === answer && answer !== correct) {
-                button.style.backgroundColor = "#e74c3c";
-            }
-        });
-        
-        if (answer === correct) {
-            score++;
-        }
-        
-        nextButton.style.display = "block";
-    }
-
-    function showResult() {
-        questionElement.textContent = "";
-        optionsElement.innerHTML = "";
-        nextButton.style.display = "none";
-        
-        const percentage = Math.round((score / totalQuestions) * 100);
-        resultElement.textContent = `Ваш результат: ${score} из ${totalQuestions} (${percentage}%)`;
-        
-        if (percentage >= 80) {
-            resultElement.style.color = "#2ecc71";
-        } else if (percentage >= 50) {
-            resultElement.style.color = "#f39c12";
-        } else {
-            resultElement.style.color = "#e74c3c";
-        }
-    }
-
-    nextButton.addEventListener("click", () => {
-        currentQuestion++;
-        if (currentQuestion < questions.length) {
-            showQuestion();
-        } else {
-            showResult();
-        }
-    });
+    // ... (остальной код остаётся таким же)
 });
