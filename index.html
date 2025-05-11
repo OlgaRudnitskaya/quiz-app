@@ -3,16 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Викторина</title>
+    <title>Викторина: Столицы мира</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="quiz-container">
-        <h1>Викторина</h1>
-        <div id="question" class="question"></div>
-        <div id="options" class="options"></div>
-        <button id="next-btn" class="next-btn">Далее</button>
-        <div id="result" class="result"></div>
+    <div class="container">
+        <div id="start-screen" class="start-screen">
+            <h1>Викторина: Столицы мира</h1>
+            <p>Выберите количество вопросов:</p>
+            <button class="count-btn" data-count="10">10 вопросов</button>
+            <button class="count-btn" data-count="20">20 вопросов</button>
+            <button class="count-btn" data-count="30">30 вопросов</button>
+        </div>
+
+        <div id="quiz-screen" class="quiz-container" style="display: none;">
+            <h1>Столицы мира</h1>
+            <div id="question" class="question"></div>
+            <div id="options" class="options"></div>
+            <button id="next-btn" class="next-btn">Далее</button>
+            <div id="result" class="result"></div>
+            <div id="progress" class="progress"></div>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
